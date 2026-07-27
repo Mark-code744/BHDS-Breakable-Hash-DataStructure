@@ -1,46 +1,36 @@
 # BHDS — Breakable Hash Data Structure
 
 > **Decoupled hash-pointer architecture for distributed trusted storage.**  
+> Reproducibility artifacts for *"A Breakable Hash Data Structure and Its Verification Mechanism for Dynamic Ledger States"*.  
 > Patent: CN122285666A — BHDS Breakable Hash & Pointer Decoupled Data Structure
-
-## Overview
-
-BHDS (Breakable Hash Data Structure) is a novel data architecture that decouples node hash (`h`) from predecessor pointer (`p`), enabling **O(1) single-point updates** while maintaining **Merkle-root-level verifiability**. Unlike traditional hash chains that require O(n) cascading updates, BHDS achieves constant-time local updates by isolating hash computation and pointer verification.
-
-## Key Innovations
-
-| Feature | Traditional Chain | BHDS |
-|---------|-------------------|------|
-| Single-point update | O(n) cascading | **O(1) local** |
-| Hash-pointer coupling | Tight (prev_hash = f(prev_block)) | **Decoupled** |
-| Global root update | Full rebuild | **O(log n) path-only** |
-| Sub-chain verification | Not supported | **Break-and-rebuild** |
 
 ## Repository Structure
 
 ```
 BHDS-Breakable-Hash-DataStructure/
-├── BHDS.py                          # Exp 1: Single-point update latency
-├── BHDS_rebuild.py                  # Exp 2: Break & rebuild timing
-├── BHDS_Update.py                   # Exp 3: Global root update latency
-├── Traditional Block List.py        # Baseline: Traditional hash chain (O(n))
-├── Merkle Tree.py                   # Baseline: Standard Merkle tree
-├── Merkle Tree Dynamic Merkle Tree.py # Baseline: Dynamic Merkle tree (cached layers)
-├── Partitioned Merkle Tree.py       # Baseline: Partitioned Merkle tree (sharding)
-└── Merkle DAG.py                    # Baseline: Merkle DAG
+├── python/                          # Main experiments (Table 3–7, 9–12)
+│   ├── BHDS.py                      # Exp 1: Single-point update latency
+│   ├── BHDS_rebuild.py              # Exp 2: Break & rebuild timing
+│   ├── BHDS_Update.py               # Exp 3: Global root update latency
+│   ├── Traditional Block List.py    # Baseline: Traditional hash chain (O(n))
+│   ├── Merkle Tree.py               # Baseline: Standard Merkle tree
+│   ├── Merkle Tree Dynamic Merkle Tree.py  # Baseline: Dynamic Merkle tree
+│   ├── Partitioned Merkle Tree.py   # Baseline: Partitioned Merkle tree
+│   └── Merkle DAG.py                # Baseline: Merkle DAG
+├── cpp/                             # Cross-language validation (Table 8)
+│   ├── src/benchmark.cpp            # C++17 re-implementation
+│   ├── CMakeLists.txt               # Build configuration
+│   └── README.md                    # Build & run instructions
+└── results/                         # Raw experimental data
 ```
 
 ## Quick Start
 
-### Requirements
+### Python Experiments (Primary)
 
 ```bash
 pip install numpy pandas
-```
 
-### Run Experiments
-
-```bash
 # BHDS experiments
 python BHDS.py
 python BHDS_rebuild.py
@@ -54,12 +44,16 @@ python "Partitioned Merkle Tree.py"
 python "Merkle DAG.py"
 ```
 
-### Expected Output
+### C++ Validation (Table 8)
 
-Each experiment generates:
-- `raw_*.csv` — Raw timing data per scale
-- `summary_*.csv` — Statistical summary (mean, std, CI95, P95, P99)
-- LaTeX table — Ready-to-use for academic papers
+```bash
+cd cpp
+cmake -B build
+cmake --build build
+./build/benchmark
+```
+
+> **Note**: C++ code uses a self-contained SHA-256 implementation (no OpenSSL). Absolute latencies differ from Python, but asymptotic trends (O(1) vs O(n) vs O(log n)) are consistent across languages.
 
 ## Core Architecture
 
@@ -72,8 +66,6 @@ class BHDSNode:
     data: str      # Payload
     h: str         # Self hash: H(id || version || data)
     p: str         # Pointer hash: H(prev_id || prev_h)
-    prev: Node     # Backward link
-    next: Node     # Forward link
 ```
 
 ### Update Flow
@@ -91,6 +83,7 @@ class BHDSNode:
 | Global root update | Local vs. global latency ratio | 1K–200K | 30× |
 | Traditional chain | Baseline O(n) latency | 1K–200K | 30× |
 | Merkle variants | Baseline O(log n) latency | 1K–200K | 30× |
+| **C++ cross-validation** | Single-point latency | 1K–200K | 5-run trimmed mean |
 
 ## Hardware & Environment
 
@@ -98,21 +91,14 @@ class BHDSNode:
 - **RAM**: 16GB DDR4-3200
 - **OS**: Windows 11 Pro 23H2 / Linux
 - **Python**: 3.11.4
-- **Hash**: SHA-256 (hashlib)
+- **C++**: C++17 (GCC/Clang/MSVC)
+- **Hash**: SHA-256
 
-## Experimental Results
+## Results
 
 All raw timing data and statistical summaries are available in the `results/` directory.
 
-| Directory | Contents |
-|-----------|----------|
-| `results/raw_*.csv` | 10 sets of raw timing data |
-| `results/summary_*.csv` | 6 sets of statistical summaries |
-| `results/README.md` | Detailed file index |
-
 ## Citation
-
-If you use BHDS in your research, please cite:
 
 ```bibtex
 @misc{bhds2024,
